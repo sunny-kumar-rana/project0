@@ -1,9 +1,4 @@
-const services = [
-  { id: 1, title: "Electrician", price: 500, location: "Hyderabad" },
-  { id: 2, title: "Plumber", price: 300, location: "Chennai" },
-  { id: 3, title: "Math Tutor", price: 700, location: "Bangalore" },
-  { id: 4, title: "AC Repair", price: 600, location: "Delhi" }
-];
+const services = getServices();
 
 const container = document.getElementById("services-container");
 
@@ -164,3 +159,75 @@ function updateNavbar() {
 }
 
 updateNavbar();
+
+function getServices(){
+  return JSON.parse(localStorage.getItem("sevices")) || [];
+}
+
+function saveServices(services){
+  localStorage.setItem("services", JSON.stringify(services));
+}
+
+const serviceForm = document.getElementById("service-form");
+
+if (serviceForm) {
+  serviceForm.addEventListener("submit", function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+
+    const currentUser = getCurrentUser();
+
+    const newService = {
+      id: Date.now(),
+      providerId: currentUser.email,
+      title: form[0].value,
+      category: form[1].value,
+      price: form[2].value,
+      location: form[3].value,
+      description: form[4].value
+    };
+
+    const services = getServices();
+    services.push(newService);
+    saveServices(services);
+
+    alert("Service added");
+
+    window.location.href = "dashboard.html";
+  });
+}
+
+if (serviceForm) {
+  const user = getCurrentUser();
+
+  if (!user || user.role !== "provider") {
+    window.location.href = "login.html";
+  }
+}
+if (container && services.length === 0) {
+  container.innerHTML = "<p>No services available</p>";
+}
+
+function loadDashboard() {
+  const user = getCurrentUser();
+  const services = getServices();
+
+  const container = document.getElementById("dashboard");
+
+  if (!container) return;
+
+  if (user.role === "provider") {
+    const myServices = services.filter(s => s.providerId === user.email);
+
+    container.innerHTML = myServices.map(s => `
+      <div class="card">
+        <h3>${s.title}</h3>
+        <p>${s.location}</p>
+      </div>
+    `).join("");
+  }
+}
+if (window.location.pathname.includes("dashboard.html")) {
+  loadDashboard();
+}
