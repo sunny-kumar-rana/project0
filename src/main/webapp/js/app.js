@@ -100,3 +100,67 @@ if(loginForm){
     }
   });
 }
+
+function getCurrentUser() {
+  return JSON.parse(localStorage.getItem("currentUser"));
+}
+
+function protectRoute() {
+  const user = getCurrentUser();
+
+  if (!user) {
+    window.location.href = "login.html";
+  }
+}
+
+if (window.location.pathname.includes("dashboard.html")) {
+  protectRoute();
+}
+
+function redirectIfLoggedIn() {
+  const user = getCurrentUser();
+
+  if (user) {
+    window.location.href = "dashboard.html";
+  }
+}
+
+if (window.location.pathname.includes("login.html") || 
+    window.location.pathname.includes("register.html")) {
+  redirectIfLoggedIn();
+}
+
+function logout() {
+  localStorage.removeItem("currentUser");
+  if(window.location.pathname.includes("index.html")){
+    window.location.href = "index.html";
+  }
+  else{
+    window.location.href = "../index.html";
+  }
+}
+
+function updateNavbar() {
+  const user = getCurrentUser();
+  const navDiv = document.querySelector("nav div");
+
+  if (!navDiv) return;
+
+  if (user) {
+    navDiv.innerHTML = window.location.pathname.includes("index.html") ? `
+      <a href="pages/service.html">services</a>
+      <a href="pages/dashboard.html">dashboard</a>
+      <button onclick="logout()">Logout</button>
+    ` : `
+      <a href="service.html">services</a>
+      <button onclick="logout()">Logout</button>
+    `;
+  } else {
+    navDiv.innerHTML = `
+      <a href="pages/login.html">Login</a>
+      <a href="pages/register.html">Register</a>
+    `;
+  }
+}
+
+updateNavbar();
