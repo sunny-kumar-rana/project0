@@ -50,3 +50,53 @@ function loadServiceDetails() {
 if (window.location.pathname.includes("service.html")) {
   loadServiceDetails();
 }
+
+
+function getUsers(){
+return JSON.parse(localStorage.getItem("users")) || []
+}
+
+function setUsers(users){
+localStorage.setItem("users", JSON.stringify(users))
+}
+
+const registorForm = document.getElementById("register-form");
+if(registorForm){
+  
+  registorForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const form = e.target;    
+    const user = {name : `${form[0].value}`,
+                  email : `${form[1].value}`,
+                  password : `${form[2].value}`,
+                  role : `${form[3].value}`};
+    
+    const users = getUsers();
+    users.push(user);
+    setUsers(users);
+
+    window.location.href = "login.html";
+  });
+}
+
+const loginForm = document.getElementById("login-form");
+if(loginForm){
+  loginForm.addEventListener("submit", e => {
+    e.preventDefault();
+    
+    const user = {"email" : `${e.target[0].value}`,
+                "password" : `${e.target[1].value}`};
+
+    const users = getUsers();
+    const foundUser = users.find(u => u.email === user.email && u.password === user.password
+    );
+
+    if(foundUser){
+      localStorage.setItem("currentUser", JSON.stringify(foundUser));
+      window.location.href = "dashboard.html";
+    } else {
+      alert("Invalid credentials");
+    }
+  });
+}
