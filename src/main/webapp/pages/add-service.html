@@ -4,13 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>add services</title>
+    <link rel="stylesheet" href="../css/style.css">
   </head>
   <body>
-    <nav>
-      <h2>Local Services</h2>
+  <nav class="navbar">
+    <h2>Local Services</h2>
 
-      <div></div>
-    </nav>
+    <input type="text" placeholder="Search..." />
+
+    <div id="nav-links"></div>
+  </nav>
+
+  <main class="container">
     <form id="service-form">
       <input type="text" placeholder="Title" required />
       <input type="text" placeholder="Category" required />
@@ -20,6 +25,7 @@
 
       <button type="submit">Add Service</button>
     </form>
+  </main>
     <script src="../js/app.js"></script>
   </body>
 </html>

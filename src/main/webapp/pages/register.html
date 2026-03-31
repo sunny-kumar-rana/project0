@@ -1,19 +1,38 @@
-<h2>Register</h2>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>register</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <h2>Local Services</h2>
 
-<form id="register-form">
-  <input type="text" placeholder="Name" required />
-  <input type="email" placeholder="Email" required />
-  <input type="password" placeholder="Password" required />
+  <input type="text" placeholder="Search..." />
 
-  <select>
-    <option value="user">User</option>
-    <option value="provider">Service Provider</option>
-  </select>
+  <div id="nav-links"></div>
+</nav>
 
-  <button type="submit">Register</button>
-</form>
+<main class="container">
+  <h2>Register</h2>
 
-<a href="login.html">Already have an account?</a>
-<a href="../index.html">Back</a>
+  <form id="register-form">
+    <input type="text" placeholder="Name" required />
+    <input type="email" placeholder="Email" required />
+    <input type="password" placeholder="Password" required />
 
+    <select>
+      <option value="user">User</option>
+      <option value="provider">Service Provider</option>
+    </select>
+
+    <button type="submit">Register</button>
+  </form>
+
+  <a href="login.html">Already have an account?</a>
+  <a href="../index.html">Back</a>
+</main>
 <script src="../js/app.js"></script>
+</body>
