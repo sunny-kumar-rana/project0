@@ -1,9 +1,10 @@
+// ---------------- SERVICES ----------------
 const services = getServices();
 
 const container = document.getElementById("services-container");
 
 if (container) {
-  services.forEach(service => {
+  services.forEach((service) => {
     const card = document.createElement("div");
     card.className = "card";
 
@@ -32,41 +33,46 @@ function loadServiceDetails() {
 
   if (!id) return;
 
-  const service = services.find(s => s.id == id);
+  const service = services.find((s) => s.id == id);
 
   if (!service) return;
 
   document.getElementById("title").innerText = service.title;
   document.getElementById("price").innerText = "₹" + service.price;
   document.getElementById("location").innerText = service.location;
+
   console.log("LOADING SERVICE PAGE");
   console.log("ID:", id);
 }
+
 if (window.location.pathname.includes("service.html")) {
   loadServiceDetails();
 }
 
-
-function getUsers(){
-return JSON.parse(localStorage.getItem("users")) || []
+// ---------------- USERS ----------------
+function getUsers() {
+  return JSON.parse(localStorage.getItem("users")) || [];
 }
 
-function setUsers(users){
-localStorage.setItem("users", JSON.stringify(users))
+function setUsers(users) {
+  localStorage.setItem("users", JSON.stringify(users));
 }
 
 const registorForm = document.getElementById("register-form");
-if(registorForm){
-  
+
+if (registorForm) {
   registorForm.addEventListener("submit", (e) => {
     e.preventDefault();
 
-    const form = e.target;    
-    const user = {name : `${form[0].value}`,
-                  email : `${form[1].value}`,
-                  password : `${form[2].value}`,
-                  role : `${form[3].value}`};
-    
+    const form = e.target;
+
+    const user = {
+      name: form[0].value,
+      email: form[1].value,
+      password: form[2].value,
+      role: form[3].value,
+    };
+
     const users = getUsers();
     users.push(user);
     setUsers(users);
@@ -75,19 +81,23 @@ if(registorForm){
   });
 }
 
+// ---------------- LOGIN ----------------
 const loginForm = document.getElementById("login-form");
-if(loginForm){
-  loginForm.addEventListener("submit", e => {
+
+if (loginForm) {
+  loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    
-    const user = {"email" : `${e.target[0].value}`,
-                "password" : `${e.target[1].value}`};
+
+    const email = e.target[0].value;
+    const password = e.target[1].value;
 
     const users = getUsers();
-    const foundUser = users.find(u => u.email === user.email && u.password === user.password
+
+    const foundUser = users.find(
+      (u) => u.email === email && u.password === password,
     );
 
-    if(foundUser){
+    if (foundUser) {
       localStorage.setItem("currentUser", JSON.stringify(foundUser));
       window.location.href = "dashboard.html";
     } else {
@@ -96,6 +106,7 @@ if(loginForm){
   });
 }
 
+// ---------------- SESSION ----------------
 function getCurrentUser() {
   return JSON.parse(localStorage.getItem("currentUser"));
 }
@@ -120,33 +131,41 @@ function redirectIfLoggedIn() {
   }
 }
 
-if (window.location.pathname.includes("login.html") || 
-    window.location.pathname.includes("register.html")) {
+if (
+  window.location.pathname.includes("login.html") ||
+  window.location.pathname.includes("register.html")
+) {
   redirectIfLoggedIn();
 }
 
+// ---------------- LOGOUT ----------------
 function logout() {
   localStorage.removeItem("currentUser");
-  if(window.location.pathname.includes("index.html")){
-    window.location.href = "index.html";
-  }
-  else{
+
+  if (window.location.pathname.includes("/pages/")) {
     window.location.href = "../index.html";
+  } else {
+    window.location.href = "index.html";
   }
 }
 
+// ---------------- NAVBAR ----------------
 function updateNavbar() {
   const user = getCurrentUser();
   const navDiv = document.querySelector("nav div");
 
   if (!navDiv) return;
 
+  const isInPages = window.location.pathname.includes("/pages/");
+
   if (user) {
-    navDiv.innerHTML = window.location.pathname.includes("index.html") ? `
+    navDiv.innerHTML = window.location.pathname.includes("index.html")
+      ? `
       <a href="pages/service.html">services</a>
       <a href="pages/dashboard.html">dashboard</a>
       <button onclick="logout()">Logout</button>
-    ` : `
+    `
+      : `
       <a href="service.html">services</a>
       <button onclick="logout()">Logout</button>
     `;
@@ -160,32 +179,38 @@ function updateNavbar() {
 
 updateNavbar();
 
-function getServices(){
-  return JSON.parse(localStorage.getItem("sevices")) || [];
+// ---------------- SERVICES STORAGE ----------------
+function getServices() {
+  return JSON.parse(localStorage.getItem("services")) || []; // FIXED TYPO
 }
 
-function saveServices(services){
+function saveServices(services) {
   localStorage.setItem("services", JSON.stringify(services));
 }
 
+// ---------------- ADD SERVICE ----------------
 const serviceForm = document.getElementById("service-form");
 
 if (serviceForm) {
-  serviceForm.addEventListener("submit", function(e) {
+  const user = getCurrentUser();
+
+  if (!user || user.role !== "provider") {
+    window.location.href = "login.html";
+  }
+
+  serviceForm.addEventListener("submit", function (e) {
     e.preventDefault();
 
     const form = e.target;
 
-    const currentUser = getCurrentUser();
-
     const newService = {
       id: Date.now(),
-      providerId: currentUser.email,
+      providerId: user.email,
       title: form[0].value,
       category: form[1].value,
       price: form[2].value,
       location: form[3].value,
-      description: form[4].value
+      description: form[4].value,
     };
 
     const services = getServices();
@@ -198,36 +223,126 @@ if (serviceForm) {
   });
 }
 
-if (serviceForm) {
-  const user = getCurrentUser();
-
-  if (!user || user.role !== "provider") {
-    window.location.href = "login.html";
-  }
-}
 if (container && services.length === 0) {
   container.innerHTML = "<p>No services available</p>";
 }
 
+// ---------------- DASHBOARD ----------------
 function loadDashboard() {
   const user = getCurrentUser();
   const services = getServices();
+  const bookings = getBookings();
 
   const container = document.getElementById("dashboard");
 
   if (!container) return;
 
   if (user.role === "provider") {
-    const myServices = services.filter(s => s.providerId === user.email);
+    const myServices = services.filter((s) => s.providerId === user.email);
 
-    container.innerHTML = myServices.map(s => `
-      <div class="card">
-        <h3>${s.title}</h3>
-        <p>${s.location}</p>
-      </div>
-    `).join("");
+    const myBookings = bookings.filter((b) =>
+      myServices.some((s) => s.id === b.serviceId),
+    );
+
+    container.innerHTML = myBookings
+      .map((b) => {
+        const service = services.find((s) => s.id === b.serviceId);
+        if (!service) return "";
+
+        return `
+        <div class="card">
+          <h3>${service.title}</h3>
+          <p>Status: ${b.status}</p>
+
+          <button onclick="updateBooking(${b.id}, 'accepted')">Accept</button>
+          <button onclick="updateBooking(${b.id}, 'rejected')">Reject</button>
+        </div>
+      `;
+      })
+      .join("");
+  } else {
+    const myBookings = bookings.filter((b) => b.userId === user.email);
+
+    container.innerHTML = myBookings
+      .map((b) => {
+        const service = services.find((s) => s.id === b.serviceId);
+        if (!service) return "";
+
+        return `
+        <div class="card">
+          <h3>${service.title}</h3>
+          <p>Status: ${b.status}</p>
+        </div>
+      `;
+      })
+      .join("");
   }
 }
+
 if (window.location.pathname.includes("dashboard.html")) {
+  loadDashboard();
+}
+
+// ---------------- BOOKINGS ----------------
+function getBookings() {
+  return JSON.parse(localStorage.getItem("bookings")) || [];
+}
+
+function saveBookings(bookings) {
+  localStorage.setItem("bookings", JSON.stringify(bookings));
+}
+
+function bookService() {
+  const user = getCurrentUser();
+
+  if (!user) {
+    alert("Login required");
+    window.location.href = "login.html";
+    return;
+  }
+
+  if (user.role === "provider") {
+    alert("Providers cannot book services");
+    return;
+  }
+
+  const serviceId = getServiceIdFromURL(); // FIXED ORDER
+
+  const bookings = getBookings();
+
+  const alreadyBooked = bookings.some(
+    (b) => b.userId === user.email && b.serviceId == serviceId,
+  );
+
+  if (alreadyBooked) {
+    alert("Already booked");
+    return;
+  }
+
+  const newBooking = {
+    id: Date.now(),
+    userId: user.email,
+    serviceId: Number(serviceId),
+    status: "pending",
+  };
+
+  bookings.push(newBooking);
+  saveBookings(bookings);
+
+  alert("Booking placed");
+}
+
+// ---------------- UPDATE BOOKING ----------------
+function updateBooking(id, status) {
+  const bookings = getBookings();
+
+  const booking = bookings.find((b) => b.id === id);
+
+  if (!booking) return;
+
+  booking.status = status;
+
+  saveBookings(bookings);
+
   loadDashboard();
 }
