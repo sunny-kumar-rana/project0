@@ -152,28 +152,32 @@ function logout() {
 // ---------------- NAVBAR ----------------
 function updateNavbar() {
   const user = getCurrentUser();
-  const navDiv = document.querySelector("nav div");
+  const navDiv = document.getElementById("nav-links");
 
   if (!navDiv) return;
 
   const isInPages = window.location.pathname.includes("/pages/");
 
   if (user) {
-    navDiv.innerHTML = window.location.pathname.includes("index.html")
-      ? `
-      <a href="pages/service.html">services</a>
-      <a href="pages/dashboard.html">dashboard</a>
-      <button onclick="logout()">Logout</button>
-    `
-      : `
-      <a href="service.html">services</a>
-      <button onclick="logout()">Logout</button>
-    `;
-  } else {
-    navDiv.innerHTML = `
-      <a href="pages/login.html">Login</a>
-      <a href="pages/register.html">Register</a>
-    `;
+    if (user.role === "provider") {
+      navDiv.innerHTML = isInPages ? `
+        <a href="dashboard.html">Dashboard</a>
+        <a href="add-service.html">Add Service</a>
+        <button onclick="logout()">Logout</button>
+      ` : `
+        <a href="pages/dashboard.html">Dashboard</a>
+        <a href="pages/add-service.html">Add Service</a>
+        <button onclick="logout()">Logout</button>
+      `;
+    } else {
+      navDiv.innerHTML = isInPages ? `
+        <a href="dashboard.html">Dashboard</a>
+        <button onclick="logout()">Logout</button>
+      ` : `
+        <a href="pages/dashboard.html">Dashboard</a>
+        <button onclick="logout()">Logout</button>
+      `;
+    }
   }
 }
 
