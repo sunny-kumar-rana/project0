@@ -280,54 +280,28 @@ if (container && services.length === 0) {
 }
 
 // ---------------- DASHBOARD ----------------
-function loadDashboard() {
-  const user = getCurrentUser();
-  const services = getServices();
-  const bookings = getBookings();
+async function loadDashboard() {
+  const user = await getCurrentUser();
+  if (!user) return;
 
   const container = document.getElementById("dashboard");
-
   if (!container) return;
 
+  const res = await fetch("/services?my=true");
+  const services = await res.json();
+
   if (user.role === "provider") {
-    const myServices = services.filter((s) => s.providerId === user.email);
-
-    const myBookings = bookings.filter((b) =>
-      myServices.some((s) => s.id === b.serviceId),
-    );
-
-    container.innerHTML = myBookings
-      .map((b) => {
-        const service = services.find((s) => s.id === b.serviceId);
-        if (!service) return "";
-
-        return `
+    container.innerHTML = services.length
+      ? services.map(s => `
         <div class="card">
-          <h3>${service.title}</h3>
-          <p>Status: ${b.status}</p>
-
-          <button onclick="updateBooking(${b.id}, 'accepted')">Accept</button>
-          <button onclick="updateBooking(${b.id}, 'rejected')">Reject</button>
+          <h3>${s.title}</h3>
+          <p>₹${s.price}</p>
+          <p>${s.location}</p>
         </div>
-      `;
-      })
-      .join("");
+      `).join("")
+      : "<p>No services yet</p>";
   } else {
-    const myBookings = bookings.filter((b) => b.userId === user.email);
-
-    container.innerHTML = myBookings
-      .map((b) => {
-        const service = services.find((s) => s.id === b.serviceId);
-        if (!service) return "";
-
-        return `
-        <div class="card">
-          <h3>${service.title}</h3>
-          <p>Status: ${b.status}</p>
-        </div>
-      `;
-      })
-      .join("");
+    container.innerHTML = "<p>User dashboard coming next</p>";
   }
 }
 
@@ -336,16 +310,9 @@ if (window.location.pathname.includes("dashboard.html")) {
 }
 
 // ---------------- BOOKINGS ----------------
-function getBookings() {
-  return JSON.parse(localStorage.getItem("bookings")) || [];
-}
 
-function saveBookings(bookings) {
-  localStorage.setItem("bookings", JSON.stringify(bookings));
-}
-
-function bookService() {
-  const user = getCurrentUser();
+async function bookService() {
+  const user = await getCurrentUser();
 
   if (!user) {
     alert("Login required");
@@ -358,43 +325,73 @@ function bookService() {
     return;
   }
 
-  const serviceId = getServiceIdFromURL(); // FIXED ORDER
+  const serviceId = getServiceIdFromURL();
 
-  const bookings = getBookings();
+  const res = await fetch("/bookings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ serviceId }),
+  });
 
-  const alreadyBooked = bookings.some(
-    (b) => b.userId === user.email && b.serviceId == serviceId,
-  );
-
-  if (alreadyBooked) {
-    alert("Already booked");
-    return;
+  if (res.ok) {
+    alert("Booking placed");
+  } else {
+    alert("Failed to book");
   }
-
-  const newBooking = {
-    id: Date.now(),
-    userId: user.email,
-    serviceId: Number(serviceId),
-    status: "pending",
-  };
-
-  bookings.push(newBooking);
-  saveBookings(bookings);
-
-  alert("Booking placed");
 }
 
 // ---------------- UPDATE BOOKING ----------------
-function updateBooking(id, status) {
-  const bookings = getBookings();
 
-  const booking = bookings.find((b) => b.id === id);
+async function loadDashboard() {
+  const user = await getCurrentUser();
+  if (!user) return;
 
-  if (!booking) return;
+  const container = document.getElementById("dashboard");
+  if (!container) return;
 
-  booking.status = status;
+  const [servicesRes, bookingsRes] = await Promise.all([
+    fetch("/services"),
+    fetch("/bookings"),
+  ]);
 
-  saveBookings(bookings);
+  const services = await servicesRes.json();
+  const bookings = await bookingsRes.json();
 
-  loadDashboard();
+  if (user.role === "provider") {
+    const myServices = services.filter(s => s.providerId === user.email);
+
+    const myBookings = bookings.filter(b =>
+      myServices.some(s => s.id === b.serviceId)
+    );
+
+    container.innerHTML = myBookings.map(b => {
+      const service = services.find(s => s.id === b.serviceId);
+      if (!service) return "";
+
+      return `
+        <div class="card">
+          <h3>${service.title}</h3>
+          <p>Status: ${b.status}</p>
+          <button onclick="updateBooking(${b.id}, 'accepted')">Accept</button>
+          <button onclick="updateBooking(${b.id}, 'rejected')">Reject</button>
+        </div>
+      `;
+    }).join("");
+  } else {
+    const myBookings = bookings.filter(b => b.userId === user.email);
+
+    container.innerHTML = myBookings.map(b => {
+      const service = services.find(s => s.id === b.serviceId);
+      if (!service) return "";
+
+      return `
+        <div class="card">
+          <h3>${service.title}</h3>
+          <p>Status: ${b.status}</p>
+        </div>
+      `;
+    }).join("");
+  }
 }
