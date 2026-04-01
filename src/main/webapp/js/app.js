@@ -1,5 +1,30 @@
 // ---------------- SERVICES ----------------
-const services = getServices();
+async function loadServices() {
+  const res = await fetch("/services");
+  const services = await res.json();
+
+  const container = document.getElementById("services-container");
+
+  if (!container) return;
+
+  container.innerHTML = "";
+
+  services.forEach((service) => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML = `
+      <h3>${service.title}</h3>
+      <p>₹${service.price}</p>
+      <p>${service.location}</p>
+      <button onclick="viewService(${service.id})">View Details</button>
+    `;
+
+    container.appendChild(card);
+  });
+}
+
+loadServices();
 
 const container = document.getElementById("services-container");
 
@@ -85,20 +110,21 @@ if (registorForm) {
 const loginForm = document.getElementById("login-form");
 
 if (loginForm) {
-  loginForm.addEventListener("submit", (e) => {
+  loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const email = e.target[0].value;
     const password = e.target[1].value;
 
-    const users = getUsers();
+    const res = await fetch("/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email, password })
+    });
 
-    const foundUser = users.find(
-      (u) => u.email === email && u.password === password,
-    );
-
-    if (foundUser) {
-      localStorage.setItem("currentUser", JSON.stringify(foundUser));
+    if (res.ok) {
       window.location.href = "dashboard.html";
     } else {
       alert("Invalid credentials");
@@ -107,12 +133,16 @@ if (loginForm) {
 }
 
 // ---------------- SESSION ----------------
-function getCurrentUser() {
-  return JSON.parse(localStorage.getItem("currentUser"));
-}
+async function getCurrentUser() {
+    const res = await fetch("/me");
 
-function protectRoute() {
-  const user = getCurrentUser();
+    if (!res.ok) return null;
+
+    return await res.json();
+  }
+
+async function protectRoute() {
+  const user = await getCurrentUser();
 
   if (!user) {
     window.location.href = "login.html";
@@ -139,8 +169,8 @@ if (
 }
 
 // ---------------- LOGOUT ----------------
-function logout() {
-  localStorage.removeItem("currentUser");
+async function logout() {
+  await fetch("/logout");
 
   if (window.location.pathname.includes("/pages/")) {
     window.location.href = "../index.html";
@@ -150,47 +180,48 @@ function logout() {
 }
 
 // ---------------- NAVBAR ----------------
-function updateNavbar() {
-  const user = getCurrentUser();
+async function updateNavbar() {
+  const user = await getCurrentUser();
   const navDiv = document.getElementById("nav-links");
 
   if (!navDiv) return;
 
   const isInPages = window.location.pathname.includes("/pages/");
 
-  if (user) {
-    if (user.role === "provider") {
-      navDiv.innerHTML = isInPages ? `
+  if (!user) {
+    navDiv.innerHTML = isInPages
+      ? `<a href="login.html">Login</a>`
+      : `<a href="pages/login.html">Login</a>`;
+    return;
+  }
+
+  if (user.role === "provider") {
+    navDiv.innerHTML = isInPages
+      ? `
         <a href="dashboard.html">Dashboard</a>
         <a href="add-service.html">Add Service</a>
         <button onclick="logout()">Logout</button>
-      ` : `
+      `
+      : `
         <a href="pages/dashboard.html">Dashboard</a>
         <a href="pages/add-service.html">Add Service</a>
         <button onclick="logout()">Logout</button>
       `;
-    } else {
-      navDiv.innerHTML = isInPages ? `
+  } else {
+    navDiv.innerHTML = isInPages
+      ? `
         <a href="dashboard.html">Dashboard</a>
         <button onclick="logout()">Logout</button>
-      ` : `
+      `
+      : `
         <a href="pages/dashboard.html">Dashboard</a>
         <button onclick="logout()">Logout</button>
       `;
-    }
   }
 }
 
 updateNavbar();
 
-// ---------------- SERVICES STORAGE ----------------
-function getServices() {
-  return JSON.parse(localStorage.getItem("services")) || []; // FIXED TYPO
-}
-
-function saveServices(services) {
-  localStorage.setItem("services", JSON.stringify(services));
-}
 
 // ---------------- ADD SERVICE ----------------
 const serviceForm = document.getElementById("service-form");
@@ -217,9 +248,26 @@ if (serviceForm) {
       description: form[4].value,
     };
 
-    const services = getServices();
-    services.push(newService);
-    saveServices(services);
+    const res = await fetch("/services", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        title: form[0].value,
+        category: form[1].value,
+        price: form[2].value,
+        location: form[3].value,
+        description: form[4].value,
+      }),
+    });
+
+    if (res.ok) {
+      alert("Service added");
+      window.location.href = "dashboard.html";
+    } else {
+      alert("Failed to add service");
+    }
 
     alert("Service added");
 
