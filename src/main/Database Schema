@@ -1,0 +1,22 @@
+CREATE TABLE users (
+    email VARCHAR2(100) PRIMARY KEY,
+    password VARCHAR2(100),
+    role VARCHAR2(20)
+);
+
+CREATE TABLE services (
+    id NUMBER PRIMARY KEY,
+    provider_email VARCHAR2(100),
+    title VARCHAR2(100),
+    category VARCHAR2(50),
+    price NUMBER,
+    location VARCHAR2(100),
+    description VARCHAR2(255)
+);
+
+CREATE TABLE bookings (
+    id NUMBER PRIMARY KEY,
+    user_email VARCHAR2(100),
+    service_id NUMBER,
+    status VARCHAR2(20)
+);
