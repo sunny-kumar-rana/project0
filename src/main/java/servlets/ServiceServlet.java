@@ -1,5 +1,6 @@
 package servlets;
 
+import DBConnectivity.DBConnection;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,19 +10,18 @@ import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.PreparedStatement;
 import java.util.stream.Collectors;
 
 @WebServlet("/services")
 public class ServiceServlet extends HttpServlet {
 
-    private static final List<Map<String, Object>> services = new ArrayList<>();
-
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
+
+        response.setContentType("application/json");
 
         String user = (String) request.getSession().getAttribute("userEmail");
 
@@ -30,20 +30,42 @@ public class ServiceServlet extends HttpServlet {
             return;
         }
 
-        String my = request.getParameter("my");
+        try (Connection conn = DBConnection.getConnection()) {
 
-        List<Map<String, Object>> result;
+            PreparedStatement ps;
 
-        if ("true".equals(my)) {
-            result = services.stream()
-                    .filter(s -> s.get("providerId").equals(user))
-                    .toList();
-        } else {
-            result = services;
+            if ("true".equals(request.getParameter("my"))) {
+                ps = conn.prepareStatement(
+                        "SELECT * FROM services WHERE provider_email=?"
+                );
+                ps.setString(1, user);
+            } else {
+                ps = conn.prepareStatement("SELECT * FROM services");
+            }
+
+            ResultSet rs = ps.executeQuery();
+
+            JSONArray arr = new JSONArray();
+
+            while (rs.next()) {
+                JSONObject obj = new JSONObject();
+                obj.put("id", rs.getLong("id"));
+                obj.put("providerId", rs.getString("provider_email"));
+                obj.put("title", rs.getString("title"));
+                obj.put("category", rs.getString("category"));
+                obj.put("price", rs.getInt("price"));
+                obj.put("location", rs.getString("location"));
+                obj.put("description", rs.getString("description"));
+
+                arr.put(obj);
+            }
+
+            response.getWriter().write(arr.toString());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.setStatus(500);
         }
-
-        response.setContentType("application/json");
-        response.getWriter().write(new JSONArray(result).toString());
     }
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -61,17 +83,27 @@ public class ServiceServlet extends HttpServlet {
 
         JSONObject json = new JSONObject(body);
 
-        Map<String, Object> service = new HashMap<>();
-        service.put("id", System.currentTimeMillis());
-        service.put("providerId", user);
-        service.put("title", json.getString("title"));
-        service.put("category", json.getString("category"));
-        service.put("price", json.getInt("price"));
-        service.put("location", json.getString("location"));
-        service.put("description", json.getString("description"));
+        try (Connection conn = DBConnection.getConnection()) {
 
-        services.add(service);
+            PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO services VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
 
-        response.setStatus(200);
+            ps.setLong(1, System.currentTimeMillis());
+            ps.setString(2, user);
+            ps.setString(3, json.getString("title"));
+            ps.setString(4, json.getString("category"));
+            ps.setInt(5, json.getInt("price"));
+            ps.setString(6, json.getString("location"));
+            ps.setString(7, json.getString("description"));
+
+            ps.executeUpdate();
+
+            response.setStatus(200);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            response.setStatus(500);
+        }
     }
 }
