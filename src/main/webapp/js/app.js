@@ -4,7 +4,6 @@ async function loadServices() {
   const services = await res.json();
 
   const container = document.getElementById("services-container");
-
   if (!container) return;
 
   container.innerHTML = "";
@@ -26,24 +25,6 @@ async function loadServices() {
 
 loadServices();
 
-const container = document.getElementById("services-container");
-
-if (container) {
-  services.forEach((service) => {
-    const card = document.createElement("div");
-    card.className = "card";
-
-    card.innerHTML = `
-      <h3>${service.title}</h3>
-      <p>₹${service.price}</p>
-      <p>${service.location}</p>
-      <button onclick="viewService(${service.id})">View Details</button>
-    `;
-
-    container.appendChild(card);
-  });
-}
-
 function viewService(id) {
   window.location.href = `./pages/service.html?id=${id}`;
 }
@@ -53,56 +34,53 @@ function getServiceIdFromURL() {
   return params.get("id");
 }
 
-function loadServiceDetails() {
+async function loadServiceDetails() {
   const id = getServiceIdFromURL();
-
   if (!id) return;
 
-  const service = services.find((s) => s.id == id);
+  const res = await fetch("/services");
+  const services = await res.json();
 
+  const service = services.find((s) => s.id == id);
   if (!service) return;
 
   document.getElementById("title").innerText = service.title;
   document.getElementById("price").innerText = "₹" + service.price;
   document.getElementById("location").innerText = service.location;
-
-  console.log("LOADING SERVICE PAGE");
-  console.log("ID:", id);
 }
 
 if (window.location.pathname.includes("service.html")) {
   loadServiceDetails();
 }
 
-// ---------------- USERS ----------------
-function getUsers() {
-  return JSON.parse(localStorage.getItem("users")) || [];
-}
+// ---------------- REGISTER ----------------
+const registerForm = document.getElementById("register-form");
 
-function setUsers(users) {
-  localStorage.setItem("users", JSON.stringify(users));
-}
-
-const registorForm = document.getElementById("register-form");
-
-if (registorForm) {
-  registorForm.addEventListener("submit", (e) => {
+if (registerForm) {
+  registerForm.addEventListener("submit", async (e) => {
     e.preventDefault();
 
     const form = e.target;
 
-    const user = {
-      name: form[0].value,
-      email: form[1].value,
-      password: form[2].value,
-      role: form[3].value,
-    };
+    const res = await fetch("/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: form[1].value,
+        password: form[2].value,
+        role: form[3].value,
+      }),
+    });
 
-    const users = getUsers();
-    users.push(user);
-    setUsers(users);
-
-    window.location.href = "login.html";
+    if (res.status === 409) {
+      alert("User already exists");
+    } else if (res.ok) {
+      window.location.href = "login.html";
+    } else {
+      alert("Registration failed");
+    }
   });
 }
 
@@ -119,9 +97,9 @@ if (loginForm) {
     const res = await fetch("/login", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password }),
     });
 
     if (res.ok) {
@@ -134,16 +112,13 @@ if (loginForm) {
 
 // ---------------- SESSION ----------------
 async function getCurrentUser() {
-    const res = await fetch("/me");
-
-    if (!res.ok) return null;
-
-    return await res.json();
-  }
+  const res = await fetch("/me");
+  if (!res.ok) return null;
+  return await res.json();
+}
 
 async function protectRoute() {
   const user = await getCurrentUser();
-
   if (!user) {
     window.location.href = "login.html";
   }
@@ -153,9 +128,8 @@ if (window.location.pathname.includes("dashboard.html")) {
   protectRoute();
 }
 
-function redirectIfLoggedIn() {
-  const user = getCurrentUser();
-
+async function redirectIfLoggedIn() {
+  const user = await getCurrentUser();
   if (user) {
     window.location.href = "dashboard.html";
   }
@@ -222,95 +196,48 @@ async function updateNavbar() {
 
 updateNavbar();
 
-
 // ---------------- ADD SERVICE ----------------
 const serviceForm = document.getElementById("service-form");
 
 if (serviceForm) {
-  const user = getCurrentUser();
+  (async () => {
+    const user = await getCurrentUser();
 
-  if (!user || user.role !== "provider") {
-    window.location.href = "login.html";
-  }
-
-  serviceForm.addEventListener("submit", function (e) {
-    e.preventDefault();
-
-    const form = e.target;
-
-    const newService = {
-      id: Date.now(),
-      providerId: user.email,
-      title: form[0].value,
-      category: form[1].value,
-      price: form[2].value,
-      location: form[3].value,
-      description: form[4].value,
-    };
-
-    const res = await fetch("/services", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title: form[0].value,
-        category: form[1].value,
-        price: form[2].value,
-        location: form[3].value,
-        description: form[4].value,
-      }),
-    });
-
-    if (res.ok) {
-      alert("Service added");
-      window.location.href = "dashboard.html";
-    } else {
-      alert("Failed to add service");
+    if (!user || user.role !== "provider") {
+      window.location.href = "login.html";
+      return;
     }
 
-    alert("Service added");
+    serviceForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
 
-    window.location.href = "dashboard.html";
-  });
-}
+      const form = e.target;
 
-if (container && services.length === 0) {
-  container.innerHTML = "<p>No services available</p>";
-}
+      const res = await fetch("/services", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: form[0].value,
+          category: form[1].value,
+          price: form[2].value,
+          location: form[3].value,
+          description: form[4].value,
+        }),
+      });
 
-// ---------------- DASHBOARD ----------------
-async function loadDashboard() {
-  const user = await getCurrentUser();
-  if (!user) return;
-
-  const container = document.getElementById("dashboard");
-  if (!container) return;
-
-  const res = await fetch("/services?my=true");
-  const services = await res.json();
-
-  if (user.role === "provider") {
-    container.innerHTML = services.length
-      ? services.map(s => `
-        <div class="card">
-          <h3>${s.title}</h3>
-          <p>₹${s.price}</p>
-          <p>${s.location}</p>
-        </div>
-      `).join("")
-      : "<p>No services yet</p>";
-  } else {
-    container.innerHTML = "<p>User dashboard coming next</p>";
-  }
-}
-
-if (window.location.pathname.includes("dashboard.html")) {
-  loadDashboard();
+      if (res.ok) {
+        alert("Service added");
+        window.location.href = "dashboard.html";
+      } else {
+        alert("Failed to add service");
+      }
+    });
+  })();
 }
 
 // ---------------- BOOKINGS ----------------
-
 async function bookService() {
   const user = await getCurrentUser();
 
@@ -342,8 +269,7 @@ async function bookService() {
   }
 }
 
-// ---------------- UPDATE BOOKING ----------------
-
+// ---------------- DASHBOARD ----------------
 async function loadDashboard() {
   const user = await getCurrentUser();
   if (!user) return;
@@ -394,4 +320,20 @@ async function loadDashboard() {
       `;
     }).join("");
   }
+}
+
+async function updateBooking(id, status) {
+  await fetch("/bookings", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ id, status }),
+  });
+
+  loadDashboard();
+}
+
+if (window.location.pathname.includes("dashboard.html")) {
+  loadDashboard();
 }
